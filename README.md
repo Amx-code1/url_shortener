@@ -110,3 +110,9 @@ Open frontend/index.html in browser
 - Implementing caching strategies
 - Structuring production-ready APIs
 
+## 🧠 Design Decisions
+
+- Used Redis to cache frequently accessed URLs to reduce database load.
+- Implemented async worker for analytics to avoid slowing down redirect requests.
+- Used JWT authentication for stateless user sessions.
+- Designed system with separation of read and write paths for scalability.
