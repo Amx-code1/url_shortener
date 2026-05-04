@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>URL Shortener</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            max-width: 700px;
+            margin: 50px auto;
+            background: #f8f9fa;
+        }
+
+        h2, h3 {
+            text-align: center;
+        }
+
+        input, button {
+            padding: 10px;
+            margin: 5px 0;
+            width: 100%;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        button {
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: #0056b3;
+        }
+
+        .card {
+            background: white;
+            padding: 15px;
+            margin-top: 10px;
+            border-radius: 8px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .small {
+            font-size: 12px;
+            color: gray;
+        }
+    </style>
+</head>
+
+<body>
+
+<h2> URL Shortener</h2>
+
+<h3> Auth</h3>
+<button onclick="login()">Login</button>
+<button onclick="logout()">Logout</button>
+<p id="tokenDisplay"></p>
+
+<hr>
+
+<input id="url" placeholder="Enter URL">
+<input id="custom" placeholder="Custom code (optional)">
+<button onclick="shorten()">Shorten</button>
+
+<p id="result"></p>
+
+<hr>
+
+<h3> My URLs</h3>
+<button onclick="loadUrls()">Load My URLs</button>
+
+<div id="list"></div>
+
+<script>
+const API = "http://127.0.0.1:8000";
+
+let TOKEN = localStorage.getItem("token") || "";
+
+// Show login state
+if (TOKEN) {
+    document.getElementById("tokenDisplay").innerText = "Already logged in ✅";
+}
+
+//  LOGIN
+async function login() {
+    try {
+        const res = await fetch(API + "/login", { method: "POST" });
+        const data = await res.json();
+
+        TOKEN = data.access_token;
+        localStorage.setItem("token", TOKEN);
+
+        document.getElementById("tokenDisplay").innerText = "Logged in ✅";
+    } catch (err) {
+        alert("Login failed");
+    }
+}
+
+//  LOGOUT
+function logout() {
+    localStorage.removeItem("token");
+    TOKEN = "";
+    document.getElementById("tokenDisplay").innerText = "Logged out ❌";
+}
+
+// SHORTEN
+async function shorten() {
+    if (!TOKEN) {
+        alert("Please login first");
+        return;
+    }
+
+    const url = document.getElementById("url").value;
+    const custom = document.getElementById("custom").value;
+
+    const res = await fetch(API + "/shorten", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": "Bearer " + TOKEN
+        },
+        body: JSON.stringify({
+            url: url,
+            custom_code: custom || null
+        })
+    });
+
+    if (!res.ok) {
+        const err = await res.json();
+        document.getElementById("result").innerText = "Error: " + err.detail;
+        return;
+    }
+
+    const data = await res.json();
+    document.getElementById("result").innerText = data.short_url;
+}
+
+//  LOAD URLS + CLICK STATS
+async function loadUrls() {
+    if (!TOKEN) {
+        alert("Please login first");
+        return;
+    }
+
+    const res = await fetch(API + "/my-urls", {
+        headers: {
+            "Authorization": "Bearer " + TOKEN
+        }
+    });
+
+    if (!res.ok) {
+        document.getElementById("list").innerText = "Failed to load URLs";
+        return;
+    }
+
+    const data = await res.json();
+    const list = document.getElementById("list");
+    list.innerHTML = "";
+
+    for (const item of data) {
+        //  Fetch click stats
+        const statsRes = await fetch(API + "/stats/" + item.short_code);
+        const statsData = await statsRes.json();
+
+        const div = document.createElement("div");
+        div.className = "card";
+
+        div.innerHTML = `
+            <b>${item.short_code}</b><br>
+            <a href="${API}/${item.short_code}" target="_blank">
+                ${API}/${item.short_code}
+            </a><br>
+            <span class="small">Clicks: ${statsData.clicks}</span>
+            <br><br>
+            <button onclick="copyLink('${API}/${item.short_code}')">Copy</button>
+        `;
+
+        list.appendChild(div);
+    }
+}
+
+// COPY LINK
+function copyLink(link) {
+    navigator.clipboard.writeText(link);
+    alert("Copied!");
+}
+</script>
+
+</body>
+</html>
