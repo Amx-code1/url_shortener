@@ -116,3 +116,8 @@ Open frontend/index.html in browser
 - Implemented async worker for analytics to avoid slowing down redirect requests.
 - Used JWT authentication for stateless user sessions.
 - Designed system with separation of read and write paths for scalability.
+
+## ## ⚠️ Known Limitations
+
+- SQLite used for simplicity; production would use PostgreSQL.
+- Redis is locally configured; production would use managed service.
